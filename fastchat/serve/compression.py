@@ -67,11 +67,14 @@ def compress(tensor, config):
 
     # Quantize
     if symmetric:
+        if data.device.type == "cpu":
+            data = data.float()
+
         B = 2 ** (num_bits - 1) - 1
         scale = B / torch.max(data.abs(), dim=group_dim + 1, keepdim=True)[0]
         data = data * scale
         data = data.clamp_(-B, B).round_().to(torch.int8)
-        return data, scale, original_shape
+        return data.cuda(), scale.cuda().half(), original_shape
     else:
         B = 2 ** num_bits - 1
         mn = torch.min(data, dim=group_dim + 1, keepdim=True)[0]
